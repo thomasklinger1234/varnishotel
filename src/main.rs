@@ -6,7 +6,7 @@ use clap::Parser;
 pub struct App {}
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     let _ = App::parse();
 
     Ok(())
