@@ -1,0 +1,12 @@
+[package]
+name = "varnishotel"
+version = "0.0.1"
+edition = "2021"
+
+[[bin]]
+name = "varnishotel"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4.5.47", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
