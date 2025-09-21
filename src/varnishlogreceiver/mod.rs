@@ -77,6 +77,26 @@ pub struct VarnishTx {
     pub timeline: Vec<VarnishTimelineItem>,
 }
 
+impl VarnishTx {
+    /// Returns the timestamp of the first timeline item.
+    pub fn get_start_time(&self) -> std::time::SystemTime {
+        if let Some(t) = self.timeline.first() {
+            std::time::UNIX_EPOCH + std::time::Duration::from_secs_f64(t.timestamp)
+        } else {
+            std::time::SystemTime::now()
+        }
+    }
+
+    /// Returns the timestamp of the last timeline item.
+    pub fn get_end_time(&self) -> std::time::SystemTime {
+        if let Some(t) = self.timeline.last() {
+            std::time::UNIX_EPOCH + std::time::Duration::from_secs_f64(t.timestamp)
+        } else {
+            std::time::SystemTime::now()
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct VarnishRequest(Vec<VarnishTx>);
 
@@ -90,6 +110,7 @@ impl VarnishlogReceiver {
     }
 
     /// Stream output of varnishlog-json and convert the output to traces.
+    /// Requires [`varnishlogjson`] to be available on the `$PATH`.
     pub async fn execute(&self, scope: opentelemetry::InstrumentationScope) -> anyhow::Result<()> {
         let cmd_args = vec!["-b", "-c", "-E", "-g", "request"];
         let mut cmd_binding = Command::new("varnishlogjson");
