@@ -63,6 +63,12 @@ async fn main() -> anyhow::Result<()> {
     {
         tokio::spawn(async move {
             tracing::info!("starting varnishlogreceiver");
+
+            let recv = varnishlogreceiver::VarnishlogReceiver::new();
+            match recv.execute(trace_scope).await {
+                Ok(()) => {},
+                Err(err) => tracing::error!("error in varnishlogreceiver: {err}"),
+            }
         });
     }
 

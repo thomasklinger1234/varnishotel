@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::process::{Command, Stdio};
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -72,6 +75,52 @@ pub struct VarnishTx {
     pub req: VarnishTxReq,
     pub resp: VarnishTxResp,
     pub timeline: Vec<VarnishTimelineItem>,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+pub struct VarnishRequest(Vec<VarnishTx>);
+
+/// A wrapper around [`varnishlog-json`](https://github.com/varnish/varnishlog-json).
+#[derive(Debug, Default)]
+pub struct VarnishlogReceiver {}
+
+impl VarnishlogReceiver {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    /// Stream output of varnishlog-json and convert the output to traces.
+    pub async fn execute(&self, scope: opentelemetry::InstrumentationScope) -> anyhow::Result<()> {
+        let cmd_args = vec!["-b", "-c", "-E", "-g", "request"];
+        let mut cmd_binding = Command::new("varnishlogjson");
+        let mut cmd = cmd_binding
+            .args(cmd_args)
+            .stdout(Stdio::piped())
+            .spawn()
+            .inspect_err(|e| tracing::error!("failed to run varnishlogjson: {e}"))?;
+
+        tracing::debug!("running varnishlogjson as [{:?}]", cmd);
+
+        let _ = opentelemetry::global::tracer_with_scope(scope);
+
+        {
+            let stdout = cmd.stdout.as_mut().unwrap();
+            let stdout_reader = BufReader::new(stdout);
+            let stdout_lines = stdout_reader.lines();
+
+            for line in stdout_lines {
+                match line {
+                    Ok(s) => {
+                        let _ =
+                            serde_json::from_str::<VarnishRequest>(&s.clone()).unwrap_or_default();
+                    }
+                    Err(err) => tracing::error!("failed to read line from stdout: {err}"),
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
