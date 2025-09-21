@@ -66,7 +66,7 @@ async fn main() -> anyhow::Result<()> {
 
             let recv = varnishlogreceiver::VarnishlogReceiver::new();
             match recv.execute(trace_scope).await {
-                Ok(()) => {},
+                Ok(()) => {}
                 Err(err) => tracing::error!("error in varnishlogreceiver: {err}"),
             }
         });

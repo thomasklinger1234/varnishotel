@@ -4,6 +4,8 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};
 
+use opentelemetry::trace::Tracer;
+
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct VarnishTimelineItem {
@@ -100,6 +102,16 @@ impl VarnishTx {
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct VarnishRequest(Vec<VarnishTx>);
 
+impl VarnishRequest {
+    pub fn get_req_top(&self) -> Option<&VarnishTx> {
+        self.0.first()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
 /// A wrapper around [`varnishlog-json`](https://github.com/varnish/varnishlog-json).
 #[derive(Debug, Default)]
 pub struct VarnishlogReceiver {}
@@ -122,7 +134,7 @@ impl VarnishlogReceiver {
 
         tracing::debug!("running varnishlogjson as [{:?}]", cmd);
 
-        let _ = opentelemetry::global::tracer_with_scope(scope);
+        let tracer = opentelemetry::global::tracer_with_scope(scope);
 
         {
             let stdout = cmd.stdout.as_mut().unwrap();
@@ -132,8 +144,28 @@ impl VarnishlogReceiver {
             for line in stdout_lines {
                 match line {
                     Ok(s) => {
-                        let _ =
+                        let req =
                             serde_json::from_str::<VarnishRequest>(&s.clone()).unwrap_or_default();
+
+                        if req.len() == 0 {
+                            tracing::warn!("found empty request. skipping");
+                            continue;
+                        }
+
+                        let req_top = req.get_req_top().unwrap();
+                        let req_top_start = req_top.get_start_time();
+                        let req_top_end = req_top.get_end_time();
+
+                        let sp_top = tracer
+                            .span_builder("Varnish request processing")
+                            .with_kind(opentelemetry::trace::SpanKind::Server)
+                            .with_start_time(req_top_start)
+                            .with_end_time(req_top_end)
+                            .start(&tracer);
+
+                        let sp_top_active = opentelemetry::trace::mark_span_as_active(sp_top);
+
+                        drop(sp_top_active);
                     }
                     Err(err) => tracing::error!("failed to read line from stdout: {err}"),
                 }
