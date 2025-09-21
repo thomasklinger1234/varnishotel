@@ -19,3 +19,4 @@ serde_json = { version = "1" }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+varnishotel-semconv = { path = "varnishotel_semconv" }

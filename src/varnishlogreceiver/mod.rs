@@ -4,7 +4,8 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};
 
-use opentelemetry::trace::Tracer;
+use opentelemetry::trace::{Span, Tracer};
+use opentelemetry::KeyValue;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -156,12 +157,25 @@ impl VarnishlogReceiver {
                         let req_top_start = req_top.get_start_time();
                         let req_top_end = req_top.get_end_time();
 
-                        let sp_top = tracer
+                        let mut sp_top = tracer
                             .span_builder("Varnish request processing")
                             .with_kind(opentelemetry::trace::SpanKind::Server)
                             .with_start_time(req_top_start)
                             .with_end_time(req_top_end)
                             .start(&tracer);
+
+                        sp_top.set_attribute(KeyValue::new(
+                            varnishotel_semconv::VARNISH_VCL,
+                            req_top.vcl.clone().unwrap_or_default(),
+                        ));
+                        sp_top.set_attribute(KeyValue::new(
+                            varnishotel_semconv::VARNISH_SIDE,
+                            req_top.side.clone(),
+                        ));
+                        sp_top.set_attribute(KeyValue::new(
+                            varnishotel_semconv::VARNISH_VXID,
+                            req_top.id.clone(),
+                        ));
 
                         let sp_top_active = opentelemetry::trace::mark_span_as_active(sp_top);
 
