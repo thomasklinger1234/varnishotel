@@ -4,6 +4,8 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_semantic_conventions as semconv;
 use tracing_subscriber::prelude::*;
 
+mod varnishlogreceiver;
+
 #[derive(Debug, Parser, Clone)]
 #[command(name = "varnishotel")]
 #[command(about = "Exports Varnish telemetry to OpenTelemetry compatible destinations", long_about = None)]
