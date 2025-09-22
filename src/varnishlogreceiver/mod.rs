@@ -103,9 +103,31 @@ impl VarnishTx {
 
     /// Updates a span with attributes from this transaction
     pub fn update_span(&self, mut span: BoxedSpan) -> BoxedSpan {
-        if let Some(err) = &self.error {
-            span.set_status(opentelemetry::trace::Status::error(err.to_string()));
-        }
+        span.set_attribute(KeyValue::new(
+            semconv::trace::URL_FULL,
+            self.req.url.clone(),
+        ));
+        span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PROTOCOL_NAME, "http"));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_REQUEST_METHOD,
+            self.req.method.clone(),
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_REQUEST_SIZE,
+            self.req.body_bytes + self.req.hdr_bytes,
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_RESPONSE_BODY_SIZE,
+            self.resp.body_bytes,
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_RESPONSE_SIZE,
+            self.resp.body_bytes + self.resp.hdr_bytes,
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_RESPONSE_STATUS_CODE,
+            self.resp.status,
+        ));
 
         span.set_attribute(KeyValue::new(
             varnishotel_semconv::VARNISH_VCL,
@@ -151,6 +173,10 @@ impl VarnishTx {
                 std::time::UNIX_EPOCH + std::time::Duration::from_secs_f64(event.timestamp);
 
             span.add_event_with_timestamp(event_name, event_ts, vec![]);
+        }
+
+        if let Some(err) = &self.error {
+            span.set_status(opentelemetry::trace::Status::error(err.to_string()));
         }
 
         span
