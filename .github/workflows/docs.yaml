@@ -35,8 +35,8 @@ jobs:
       - run: |
           pip install uv
 
-          uv sync --group docs
-          uv run mkdocs build --clean --site-dir site
+          make docs-deps
+          make docs-build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
