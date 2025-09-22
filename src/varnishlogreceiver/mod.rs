@@ -119,6 +119,14 @@ impl VarnishTx {
             self.id.clone(),
         ));
 
+        for event in self.timeline.clone() {
+            let event_name = event.name;
+            let event_ts =
+                std::time::UNIX_EPOCH + std::time::Duration::from_secs_f64(event.timestamp);
+
+            span.add_event_with_timestamp(event_name, event_ts, vec![]);
+        }
+    
         span
     }
 }
