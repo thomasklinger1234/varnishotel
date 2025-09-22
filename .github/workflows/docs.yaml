@@ -1,0 +1,45 @@
+---
+name: docs
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**/*.md'
+      - 'mkdocs.yml'
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  docs-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4 # pin@v3
+        with:
+          fetch-depth: 0 # https://github.com/timvink/mkdocs-git-revision-date-localized-plugin?tab=readme-ov-file#note-when-using-build-systems-like-github-actions
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: 'pyproject.toml'
+      - run: |
+          pip install uv
+
+          uv sync --group docs
+          uv run mkdocs build --clean --site-dir site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: "site"
+      - id: deployment
+        uses: actions/deploy-pages@v4
