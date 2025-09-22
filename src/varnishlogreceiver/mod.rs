@@ -171,7 +171,10 @@ impl VarnishTx {
                 b.conn_reused.unwrap_or_default(),
             ));
 
-            span.update_name(format!("Varnish to {} fetch", normalize_backend_name(&b.name)));
+            span.update_name(format!(
+                "Varnish to {} fetch",
+                normalize_backend_name(&b.name)
+            ));
         }
 
         if let Some(c) = &self.client {
