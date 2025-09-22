@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/thomasklinger1234/varnishotel/compare/varnishotel-v0.1.0...varnishotel-v0.1.1) (2025-09-22)
+
+
+### 💩 Bug Fixes
+
+* **ci:** fix wrong selector for inputs ([08ad0f8](https://github.com/thomasklinger1234/varnishotel/commit/08ad0f85daaecc7ebe06f7f71150a799a0e3ecb2))
+
 ## 0.1.0 (2025-09-22)
 
 
