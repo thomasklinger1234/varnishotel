@@ -2,7 +2,9 @@ name: release
 
 on:
   push:
-    branches: [main]
+    branches: ['main']
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 concurrency:
@@ -32,8 +34,11 @@ jobs:
           images: |
             ghcr.io/${{ github.repository_owner }}/varnishotel
           tags: |
-            type=edge,branch=main
-            type=raw,value=v{{date 'YYYYMMDD'}}-{{sha}}
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=sha,format=long
+            type=edge,branch=main,enable={{is_default_branch}}
       - uses: docker/build-push-action@v6
         with:
           push: ${{ github.event_name != 'pull_request' }}

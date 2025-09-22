@@ -1,16 +1,16 @@
 name: codeql_rust
 
-env:
-  CODEQL_ENABLE_EXPERIMENTAL_FEATURES : true # CodeQL support for Rust is experimental
-
-permissions:
-  contents: read
-
 on:
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+
+env:
+  CODEQL_ENABLE_EXPERIMENTAL_FEATURES : true # CodeQL support for Rust is experimental
+
+permissions:
+  contents: read
 
 jobs:
   codeql-rust:
