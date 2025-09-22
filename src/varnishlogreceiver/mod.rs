@@ -7,6 +7,7 @@ use std::process::{Command, Stdio};
 use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::KeyValue;
+use opentelemetry_semantic_conventions as semconv;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -119,6 +120,22 @@ impl VarnishTx {
             self.id.clone(),
         ));
 
+        if let Some(b) = &self.backend {
+            span.set_attribute(KeyValue::new(
+                semconv::trace::NETWORK_PEER_ADDRESS,
+                b.r_addr.clone(),
+            ));
+            span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, b.r_port));
+        }
+
+        if let Some(c) = &self.client {
+            span.set_attribute(KeyValue::new(
+                semconv::trace::NETWORK_PEER_ADDRESS,
+                c.r_addr.clone(),
+            ));
+            span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, c.r_port));
+        }
+
         for event in self.timeline.clone() {
             let event_name = event.name;
             let event_ts =
@@ -126,7 +143,7 @@ impl VarnishTx {
 
             span.add_event_with_timestamp(event_name, event_ts, vec![]);
         }
-    
+
         span
     }
 }
