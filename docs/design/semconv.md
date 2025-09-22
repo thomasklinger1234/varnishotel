@@ -10,10 +10,12 @@ response handling.
 
 The following attributes are added 
 
-| Attribute      | Type   | Description                               | Examples           |
-|----------------|--------|-------------------------------------------|--------------------|
-| `varnish.vxid` | String | ID of the transaction.                    | `213`              |
-| `varnish.side` | String | Request handling side.                    | `client`;`backend` |
-| `varnish.vcl`  | String | Name of the VCL that handles the request. | `boot`             |
+| Attribute                     | Type    | Description                                   | Examples           |
+|-------------------------------|---------|-----------------------------------------------|--------------------|
+| `varnish.vxid`                | String  | ID of the transaction.                        | `213`              |
+| `varnish.side`                | String  | Request handling side.                        | `client`;`backend` |
+| `varnish.vcl`                 | String  | Name of the VCL that handles the request.     | `boot`             |
+| `varnish.backend.name`        | String  | Name of the backend that handles the request. | `default`          |
+| `varnish.backend.conn_reused` | Boolean | Indicates if the connection has been reused.  | `false`            |
 
 The Rust package `varnishotel_semconv` is added to hold those attributes. 

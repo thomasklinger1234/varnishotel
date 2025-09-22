@@ -3,9 +3,24 @@ use std::collections::HashMap;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};
+use std::sync::LazyLock;
 
+use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::KeyValue;
+use opentelemetry_semantic_conventions as semconv;
+use regex::Regex;
+
+fn normalize_backend_name(be: &str) -> String {
+    // capture for vmod-dynamic backends to extract the name as they are in format <vcl_name>(<ip>:<port>)
+    static RE_BE_VMOD_DYNAMIC: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?<backend>.*)\((?<server>.*)\)").unwrap());
+    if let Some(caps) = RE_BE_VMOD_DYNAMIC.captures(be) {
+        return caps["backend"].to_string();
+    }
+
+    be.to_string()
+}
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -98,6 +113,94 @@ impl VarnishTx {
             std::time::SystemTime::now()
         }
     }
+
+    /// Updates a span with attributes from this transaction
+    pub fn update_span(&self, mut span: BoxedSpan) -> BoxedSpan {
+        span.set_attribute(KeyValue::new(
+            semconv::trace::URL_FULL,
+            self.req.url.clone(),
+        ));
+        span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PROTOCOL_NAME, "http"));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_REQUEST_METHOD,
+            self.req.method.clone(),
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_REQUEST_SIZE,
+            self.req.body_bytes + self.req.hdr_bytes,
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_RESPONSE_BODY_SIZE,
+            self.resp.body_bytes,
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_RESPONSE_SIZE,
+            self.resp.body_bytes + self.resp.hdr_bytes,
+        ));
+        span.set_attribute(KeyValue::new(
+            semconv::trace::HTTP_RESPONSE_STATUS_CODE,
+            self.resp.status,
+        ));
+
+        span.set_attribute(KeyValue::new(
+            varnishotel_semconv::VARNISH_VCL,
+            self.vcl.clone().unwrap_or_default(),
+        ));
+        span.set_attribute(KeyValue::new(
+            varnishotel_semconv::VARNISH_SIDE,
+            self.side.clone(),
+        ));
+        span.set_attribute(KeyValue::new(
+            varnishotel_semconv::VARNISH_VXID,
+            self.id.clone(),
+        ));
+
+        if let Some(b) = &self.backend {
+            span.set_attribute(KeyValue::new(
+                semconv::trace::NETWORK_PEER_ADDRESS,
+                b.r_addr.clone(),
+            ));
+            span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, b.r_port));
+
+            span.set_attribute(KeyValue::new(
+                varnishotel_semconv::VARNISH_BACKEND_NAME,
+                b.name.clone(),
+            ));
+            span.set_attribute(KeyValue::new(
+                varnishotel_semconv::VARNISH_BACKEND_CONN_REUSED,
+                b.conn_reused.unwrap_or_default(),
+            ));
+
+            span.update_name(format!(
+                "Varnish to {} fetch",
+                normalize_backend_name(&b.name)
+            ));
+        }
+
+        if let Some(c) = &self.client {
+            span.set_attribute(KeyValue::new(
+                semconv::trace::NETWORK_PEER_ADDRESS,
+                c.r_addr.clone(),
+            ));
+            span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, c.r_port));
+
+            span.update_name("Varnish request processing");
+        }
+
+        for event in self.timeline.clone() {
+            let event_name = event.name;
+            let event_ts =
+                std::time::UNIX_EPOCH + std::time::Duration::from_secs_f64(event.timestamp);
+
+            span.add_event_with_timestamp(event_name, event_ts, vec![]);
+        }
+
+        if let Some(err) = &self.error {
+            span.set_status(opentelemetry::trace::Status::error(err.to_string()));
+        }
+
+        span
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -164,18 +267,7 @@ impl VarnishlogReceiver {
                             .with_end_time(req_top_end)
                             .start(&tracer);
 
-                        sp_top.set_attribute(KeyValue::new(
-                            varnishotel_semconv::VARNISH_VCL,
-                            req_top.vcl.clone().unwrap_or_default(),
-                        ));
-                        sp_top.set_attribute(KeyValue::new(
-                            varnishotel_semconv::VARNISH_SIDE,
-                            req_top.side.clone(),
-                        ));
-                        sp_top.set_attribute(KeyValue::new(
-                            varnishotel_semconv::VARNISH_VXID,
-                            req_top.id.clone(),
-                        ));
+                        sp_top = req_top.update_span(sp_top);
 
                         let sp_top_active = opentelemetry::trace::mark_span_as_active(sp_top);
 
@@ -194,4 +286,10 @@ impl VarnishlogReceiver {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_normalize_backend_name() {
+        assert_eq!(normalize_backend_name("default"), "default");
+        assert_eq!(normalize_backend_name("dyn_dir(127.0.0.1:80)"), "dyn_dir");
+    }
 }
