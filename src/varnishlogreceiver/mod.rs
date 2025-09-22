@@ -126,6 +126,15 @@ impl VarnishTx {
                 b.r_addr.clone(),
             ));
             span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, b.r_port));
+
+            span.set_attribute(KeyValue::new(
+                varnishotel_semconv::VARNISH_BACKEND_NAME,
+                b.name.clone(),
+            ));
+            span.set_attribute(KeyValue::new(
+                varnishotel_semconv::VARNISH_BACKEND_CONN_REUSED,
+                b.conn_reused.unwrap_or_default(),
+            ));
         }
 
         if let Some(c) = &self.client {
