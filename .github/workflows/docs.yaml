@@ -26,10 +26,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4 # pin@v3
+      - uses: actions/checkout@v5 # pin@v3
         with:
           fetch-depth: 0 # https://github.com/timvink/mkdocs-git-revision-date-localized-plugin?tab=readme-ov-file#note-when-using-build-systems-like-github-actions
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version-file: 'pyproject.toml'
       - uses: astral-sh/setup-uv@v6
@@ -37,7 +37,7 @@ jobs:
           make docs-deps
           make docs-build
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: "site"
       - id: deployment
