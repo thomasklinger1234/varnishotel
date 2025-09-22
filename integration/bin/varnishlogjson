@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Varnishstat wrapper for executing varnishncsa from a host machine
+# into a running docker container.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
+docker exec -t ${VARNISH_DOCKER_IMAGE:-varnishotel-varnishotel-1} /usr/sbin/varnishlogjson $*
