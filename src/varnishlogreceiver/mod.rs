@@ -4,6 +4,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};
 
+use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::KeyValue;
 
@@ -98,6 +99,28 @@ impl VarnishTx {
             std::time::SystemTime::now()
         }
     }
+
+    /// Updates a span with attributes from this transaction
+    pub fn update_span(&self, mut span: BoxedSpan) -> BoxedSpan {
+        if let Some(err) = &self.error {
+            span.set_status(opentelemetry::trace::Status::error(err.to_string()));
+        }
+
+        span.set_attribute(KeyValue::new(
+            varnishotel_semconv::VARNISH_VCL,
+            self.vcl.clone().unwrap_or_default(),
+        ));
+        span.set_attribute(KeyValue::new(
+            varnishotel_semconv::VARNISH_SIDE,
+            self.side.clone(),
+        ));
+        span.set_attribute(KeyValue::new(
+            varnishotel_semconv::VARNISH_VXID,
+            self.id.clone(),
+        ));
+
+        span
+    }
 }
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -164,18 +187,7 @@ impl VarnishlogReceiver {
                             .with_end_time(req_top_end)
                             .start(&tracer);
 
-                        sp_top.set_attribute(KeyValue::new(
-                            varnishotel_semconv::VARNISH_VCL,
-                            req_top.vcl.clone().unwrap_or_default(),
-                        ));
-                        sp_top.set_attribute(KeyValue::new(
-                            varnishotel_semconv::VARNISH_SIDE,
-                            req_top.side.clone(),
-                        ));
-                        sp_top.set_attribute(KeyValue::new(
-                            varnishotel_semconv::VARNISH_VXID,
-                            req_top.id.clone(),
-                        ));
+                        sp_top = req_top.update_span(sp_top);
 
                         let sp_top_active = opentelemetry::trace::mark_span_as_active(sp_top);
 
