@@ -3,11 +3,24 @@ use std::collections::HashMap;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::process::{Command, Stdio};
+use std::sync::LazyLock;
 
 use opentelemetry::global::BoxedSpan;
 use opentelemetry::trace::{Span, Tracer};
 use opentelemetry::KeyValue;
 use opentelemetry_semantic_conventions as semconv;
+use regex::Regex;
+
+fn normalize_backend_name(be: &str) -> String {
+    // capture for vmod-dynamic backends to extract the name as they are in format <vcl_name>(<ip>:<port>)
+    static RE_BE_VMOD_DYNAMIC: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?<backend>.*)\((?<server>.*)\)").unwrap());
+    if let Some(caps) = RE_BE_VMOD_DYNAMIC.captures(be) {
+        return caps["backend"].to_string();
+    }
+
+    be.to_string()
+}
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -157,6 +170,8 @@ impl VarnishTx {
                 varnishotel_semconv::VARNISH_BACKEND_CONN_REUSED,
                 b.conn_reused.unwrap_or_default(),
             ));
+
+            span.update_name(format!("Varnish to {} fetch", normalize_backend_name(&b.name)));
         }
 
         if let Some(c) = &self.client {
@@ -165,6 +180,8 @@ impl VarnishTx {
                 c.r_addr.clone(),
             ));
             span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, c.r_port));
+
+            span.update_name("Varnish request processing");
         }
 
         for event in self.timeline.clone() {
@@ -266,4 +283,10 @@ impl VarnishlogReceiver {
 #[allow(unused_imports)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_normalize_backend_name() {
+        assert_eq!(normalize_backend_name("default"), "default");
+        assert_eq!(normalize_backend_name("dyn_dir(127.0.0.1:80)"), "dyn_dir");
+    }
 }
