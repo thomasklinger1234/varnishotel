@@ -116,6 +116,8 @@ impl VarnishTx {
 
     /// Updates a span with attributes from this transaction
     pub fn update_span(&self, mut span: BoxedSpan) -> BoxedSpan {
+        span.update_name(format!("Varnish {} {}", self.side, self.handling));
+
         span.set_attribute(KeyValue::new(
             semconv::trace::URL_FULL,
             self.req.url.clone(),
@@ -183,8 +185,6 @@ impl VarnishTx {
                 c.r_addr.clone(),
             ));
             span.set_attribute(KeyValue::new(semconv::trace::NETWORK_PEER_PORT, c.r_port));
-
-            span.update_name("Varnish request processing");
         }
 
         for event in self.timeline.clone() {
@@ -268,8 +268,31 @@ impl VarnishlogReceiver {
                             .start(&tracer);
 
                         sp_top = req_top.update_span(sp_top);
+                        sp_top.update_name("Varnish request processing");
 
                         let sp_top_active = opentelemetry::trace::mark_span_as_active(sp_top);
+
+                        for req_sub in &req.0[1..] {
+                            let req_sub_start = req_sub.get_start_time();
+                            let req_sub_end = req_sub.get_end_time();
+
+                            {
+                                let mut sp_sub = tracer
+                                    .span_builder(format!(
+                                        "Varnish {} {}",
+                                        req_sub.side, req_sub.handling,
+                                    ))
+                                    .with_kind(opentelemetry::trace::SpanKind::Internal)
+                                    .with_start_time(req_sub_start)
+                                    .with_end_time(req_sub_end)
+                                    .start(&tracer);
+
+                                sp_sub = req_sub.update_span(sp_sub);
+
+                                let _sp_sub_active =
+                                    opentelemetry::trace::mark_span_as_active(sp_sub);
+                            }
+                        }
 
                         drop(sp_top_active);
                     }
