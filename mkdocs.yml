@@ -50,6 +50,7 @@ nav:
   - Design:
       - design/varnishlogreceiver.md
       - design/semconv.md
+      - design/trace_naming.md
 
 plugins:
   - search
