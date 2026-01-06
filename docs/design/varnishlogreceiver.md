@@ -6,6 +6,8 @@ This document describes the design of the `varnishlogreceiver` component in varn
 receiver is responsible for collecting request logs from Varnish and converting those logs into 
 OpenTelemetry traces. 
 
+**NOTE: `varnishlogreceiver` has been moved to its own package and renamed in [#22](https://github.com/thomasklinger1234/varnishotel/pull/22).**
+
 ## Design
 
 `varnishlogreceiver` is a component that wraps the [varnishlog-json](https://github.com/varnish/varnishlog-json)
