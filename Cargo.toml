@@ -3,5 +3,6 @@ resolver = "2"
 
 members = [
     "libs/varnishotel_semconv",
+    "libs/varnishotel_varnishtrace",
     "varnishotel"
 ]

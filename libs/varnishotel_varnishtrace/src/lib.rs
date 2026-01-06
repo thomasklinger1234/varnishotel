@@ -214,6 +214,10 @@ impl VarnishRequest {
     pub fn len(&self) -> usize {
         self.0.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 /// A wrapper around [`varnishlog-json`](https://github.com/varnish/varnishlog-json).
@@ -251,7 +255,7 @@ impl VarnishlogReceiver {
                         let req =
                             serde_json::from_str::<VarnishRequest>(&s.clone()).unwrap_or_default();
 
-                        if req.len() == 0 {
+                        if req.is_empty() {
                             tracing::warn!("found empty request. skipping");
                             continue;
                         }

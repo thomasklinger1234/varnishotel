@@ -1,4 +1,4 @@
-# varnishotel-semconv
+# `varnishotel_semconv`
 
 Provides [semantic conventions](https://opentelemetry.io/docs/concepts/semantic-conventions/) 
 for Varnish. 

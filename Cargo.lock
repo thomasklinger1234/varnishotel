@@ -1404,18 +1404,33 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry-semantic-conventions",
  "opentelemetry_sdk",
- "regex",
  "serde",
  "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
  "varnishotel_semconv",
+ "varnishotel_varnishtrace",
 ]
 
 [[package]]
 name = "varnishotel_semconv"
 version = "0.0.0"
+
+[[package]]
+name = "varnishotel_varnishtrace"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "opentelemetry",
+ "opentelemetry-semantic-conventions",
+ "opentelemetry_sdk",
+ "regex",
+ "serde",
+ "serde_json",
+ "tracing",
+ "varnishotel_semconv",
+]
 
 [[package]]
 name = "want"

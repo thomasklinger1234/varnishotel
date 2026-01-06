@@ -4,8 +4,6 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_semantic_conventions as semconv;
 use tracing_subscriber::prelude::*;
 
-mod varnishlogreceiver;
-
 #[derive(Debug, Parser, Clone)]
 #[command(name = "varnishotel")]
 #[command(about = "Exports Varnish telemetry to OpenTelemetry compatible destinations", long_about = None)]
@@ -62,12 +60,12 @@ async fn main() -> anyhow::Result<()> {
 
     {
         tokio::spawn(async move {
-            tracing::info!("starting varnishlogreceiver");
+            tracing::info!("starting varnishtrace");
 
-            let recv = varnishlogreceiver::VarnishlogReceiver::new();
+            let recv = varnishotel_varnishtrace::VarnishlogReceiver::new();
             match recv.execute(trace_scope).await {
                 Ok(()) => {}
-                Err(err) => tracing::error!("error in varnishlogreceiver: {err}"),
+                Err(err) => tracing::error!("error in varnishtrace: {err}"),
             }
         });
     }
