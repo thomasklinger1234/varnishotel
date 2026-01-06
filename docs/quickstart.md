@@ -43,11 +43,12 @@ from the `compose.yaml` file and run
 
 ```
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-export PATH="integration/bin:$PATH"
+export PATH="fixtures/bin:$PATH"
 cargo run -- 
 ```
 
-The `integration/bin` directory contains wrappers for executing `varnishlogjson` and `varnishstat`. 
+The `fixtures/bin` directory contains wrappers for executing `varnishlogjson` and `varnishstat` directly
+on the started compose containers. 
 
 ## Deploy Docker image
 
