@@ -1,0 +1,18 @@
+[package]
+name = "varnishotel_varnishtrace"
+description = "Varnish OTEL Trace collector"
+version = "0.0.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/thomasklinger1234/varnishotel"
+
+[dependencies]
+anyhow = { version = "1" }
+opentelemetry = { version = "0.30.0"}
+opentelemetry_sdk = { version = "0.30.0" }
+opentelemetry-semantic-conventions = { version = "0.30.0", features = ["semconv_experimental"] }
+regex = "1.11"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+tracing = "0.1"
+varnishotel_semconv = { path = "../../libs/varnishotel_semconv" }
