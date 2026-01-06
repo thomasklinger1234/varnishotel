@@ -26,7 +26,7 @@ Varnish provides powerful monitoring tools like `varnishstat` and `varnishlog` o
 box. However, they are not capable of exposing the data to external monitoring systems and 
 require wrappers around them such as:
 
-- [jonnenauha/prometheus_varnish_exporter](https://github.com/jonnenauha/prometheus_varnish_exporter) for exposing
+- [otto-de/prometheus_varnish_exporter](https://github.com/otto-de/prometheus_varnish_exporter) (previously known as `jonnenauha/prometheus_varnish_exporter`) for exposing
   `varnishstat` metrics to Prometheus
 - [varnish/varnishlog-json](https://github.com/varnish/varnishlog-json) to convert Varnish internal logs
   to JSON. This approach requires an external collector like fluent-bit, Logstash or vector to execute the program
