@@ -1486,12 +1486,12 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "varnishotel-semconv",
+ "varnishotel_semconv",
 ]
 
 [[package]]
-name = "varnishotel-semconv"
-version = "0.0.1"
+name = "varnishotel_semconv"
+version = "0.0.0"
 
 [[package]]
 name = "want"
